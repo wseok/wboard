@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" ?> <!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dao.IBoardCommentDao">
+
+	<!--resultMap -->
+
+	<resultMap type="board" id="boardMap">
+		<id column="b_id" property="bId" />
+		<result column="reg_date" property="regDate" />
+		<result column="group_id" property="groupId" />
+		<result column="group_seq" property="groupSeq" />
+		<result column="parent_id" property="parentId" />
+		<result column="f_id" property="fId" />
+	</resultMap>
+
+	<resultMap type="comment" id="commentMap">
+		<id column="c_id" property="cId" />
+		<result column="b_id" property="bId" />
+		<result column="reg_date" property="regDate" />
+		<result column="group_id" property="groupId" />
+		<result column="group_seq" property="groupSeq" />
+		<result column="group_lv" property="groupLv" />
+	</resultMap>
+
+	<sql id="regDate">
+		<choose>
+			<when test="regDate != null">
+				#{regDate}
+			</when>
+			<otherwise>
+				sysdate()
+			</otherwise>
+		</choose>
+	</sql>
+
+	<!--Basic Board -->
+
+	<insert id="insertBoard" parameterType="board" useGeneratedKeys="true"
+		keyProperty="bId">
+		INSERT INTO board VALUES
+		(0, #{title}, #{content}, #{writer},
+		<include refid="regDate" />
+		, #{hit},
+		#{groupId}, #{groupSeq}, #{parentId}, #{fId})
+	</insert>
+
+	<update id="updateBoard" parameterType="board" useGeneratedKeys="true"
+		keyProperty="bId">
+		UPDATE board SET
+		title=#{title}, content=#{content}, writer=#{writer},
+		reg_date=<include refid="regDate" />, hit=#{hit}, group_id=#{groupId},
+		group_seq=#{groupSeq}, parent_id=#{parentId}, f_id=#{fId} WHERE
+		b_id=#{bId}
+	</update>
+
+	<delete id="deleteBoard" parameterType="int">
+		DELETE FROM board WHERE
+		b_id=#{bId}
+	</delete>
+
+	<select id="selectOneBoard" parameterType="int" resultMap="boardMap">
+		SELECT * FROM board WHERE b_id=#{bId}
+	</select>
+
+	<select id="selectAllBoard" resultMap="boardMap">
+		SELECT * FROM board
+	</select>
+
+	<!--Basic Comment -->
+
+	<insert id="insertComment" parameterType="comment"
+		useGeneratedKeys="true" keyProperty="cId">
+		INSERT INTO comment VALUES
+		(0, #{comment}, #{writer}, #{bId},
+		<include refid="regDate" />
+		,#{groupId}, #{groupSeq},
+		#{groupLv})
+	</insert>
+
+	<update id="updateComment" parameterType="Comment">
+		UPDATE Comment SET
+		comment=#{comment}, writer=#{writer}, b_id=#{bId}, reg_date=
+		<include refid="regDate" />, group_id=#{groupId}, group_seq=#{groupSeq},
+		group_lv=#{groupLv} WHERE c_id=#{cId}
+	</update>
+
+	<delete id="deleteComment" parameterType="int">
+		DELETE FROM comment
+		WHERE
+		c_id=#{cId}
+	</delete>
+
+	<select id="selectOneComment" parameterType="int" resultMap="commentMap">
+		SELECT * FROM comment WHERE c_id=#{cId}
+	</select>
+
+	<select id="selectAllComment" resultMap="commentMap">
+		SELECT * FROM comment
+	</select>
+
+	<!--Upgrade Board -->
+
+	<select id="selectBoardByWriter" parameterType="String"
+		resultMap="boardMap">
+		SELECT * FROM board WHERE writer=#{writer}
+	</select>
+
+	<update id="updateGroupSeq" parameterType="java.util.HashMap">
+		UPDATE board SET
+		group_seq = group_seq+1
+		WHERE group_id = #{group_id} AND group_seq >=
+		#{group_seq}
+	</update>
+
+	<select id="selectListSearch" resultMap="boardMap"
+		parameterType="java.util.HashMap">
+		SELECT * FROM board
+		<if test="mode != 0">
+			WHERE 1=0
+			<if test="title != null">
+				OR title LIKE '%${title}%'
+			</if>
+			<if test="content != null">
+				OR content LIKE '%${content}%'
+			</if>
+			<if test="writer != null">
+				OR writer LIKE '%${writer}%'
+			</if>
+		</if>
+		ORDER BY group_id DESC, group_seq ASC
+		LIMIT #{skip}, #{count}
+	</select>
+
+	<select id="selectList" resultMap="boardMap" parameterType="java.util.HashMap">
+		SELECT * FROM board WHERE 1=1
+		ORDER BY group_id DESC, group_seq ASC
+		LIMIT #{skip}, #{count}
+	</select>
+
+	<select id="getBoardCount" resultType="int">
+		SELECT COUNT(*) FROM board
+	</select>
+	
+	<select id="getBoardSearchCount" parameterType="java.util.HashMap" resultType="int">
+		SELECT COUNT(*) FROM board
+		<if test="mode != 0">
+			WHERE 1=0
+			<if test="title != null">
+				OR title LIKE '%${title}%'
+			</if>
+			<if test="content != null">
+				OR content LIKE '%${content}%'
+			</if>
+			<if test="writer != null">
+				OR writer LIKE '%${writer}%'
+			</if>
+		</if>
+	</select>
+	
+	<select id="selectListByWirter" resultMap="boardMap" parameterType="java.util.HashMap">
+		SELECT * FROM board WHERE writer=#{writer}
+		ORDER BY group_id DESC, group_seq ASC
+		LIMIT #{skip}, #{count}
+	</select>
+	
+	<select id="getBoardCountByWriter" resultType="int" parameterType="String">
+		SELECT COUNT(*) FROM board WHERE writer=#{writer}
+	</select>
+
+	<!--Upgrade Comment -->
+
+	<select id="selectCommentByWriter" parameterType="String"
+		resultMap="commentMap">
+		SELECT * FROM comment WHERE writer=#{writer}
+	</select>
+
+	<select id="selectCommentByBId" parameterType="int" resultMap="commentMap">
+		SELECT * FROM comment WHERE b_id=#{bId}
+		ORDER BY group_id ASC, group_seq ASC
+	</select>
+
+	<select id="selectCommentByBIdAndWriter" parameterType="comment"
+		resultMap="commentMap">
+		SELECT * FROM comment WHERE b_id=#{bId} and writer=#{writer}
+	</select>
+	
+	<select id="selectCommentByWirter" resultMap="commentMap" parameterType="java.util.HashMap">
+		SELECT * FROM comment WHERE writer=#{writer}
+		ORDER BY group_id DESC, group_seq ASC
+		LIMIT #{skip}, #{count}
+	</select>
+	
+	<select id="getCommentCountByWriter" resultType="int" parameterType="String">
+		SELECT COUNT(*) FROM comment WHERE writer=#{writer}
+	</select>
+
+</mapper>
